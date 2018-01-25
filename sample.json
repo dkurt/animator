@@ -1,0 +1,81 @@
+{
+  "image": "orc.png",
+  "bones": [
+    {
+      "joint_from": { "name": "Chest", "x": 400, "y": 799 },
+      "joint_to": { "name": "Neck", "x": 400, "y": 501 },
+      "skin": { "x": 229, "y": 477, "width": 317, "height": 342 },
+      "order": 1
+    },
+    {
+      "joint_from": { "name": "Neck", "x": 317, "y": 240 },
+      "joint_to": { "name": "Head", "x": 317, "y": 98 },
+      "skin": { "x": 128, "y": 2, "width": 452, "height": 354 },
+      "order": 2
+    },
+    {
+      "joint_from": { "name": "Neck", "x": 400, "y": 501 },
+      "joint_to": { "name": "RShoulder", "x": 280, "y": 570 }
+    },
+    {
+      "joint_from": { "name": "RShoulder", "x": 111, "y": 502 },
+      "joint_to": { "name": "RElbow", "x": 111, "y": 669 },
+      "skin": { "x": 53, "y": 497, "width": 126, "height": 180 },
+      "order": 2
+    },
+    {
+      "joint_from": { "name": "RElbow", "x": 115, "y": 723 },
+      "joint_to": { "name": "RWrist", "x": 115, "y": 872 },
+      "skin": { "x": 64, "y": 691, "width": 105, "height": 230 },
+      "order": 3
+    },
+    {
+      "joint_from": { "name": "Neck", "x": 400, "y": 501 },
+      "joint_to": { "name": "LShoulder", "x": 501, "y": 610 }
+    },
+    {
+      "joint_from": { "name": "LShoulder", "x": 647, "y": 519 },
+      "joint_to": { "name": "LElbow", "x": 647, "y": 651 },
+      "skin": { "x": 581, "y": 493, "width": 129, "height": 184 },
+      "order": 0
+    },
+    {
+      "joint_from": { "name": "LElbow", "x": 661, "y": 724 },
+      "joint_to": { "name": "LWrist", "x": 661, "y": 872 },
+      "skin": { "x": 600, "y": 693, "width": 110, "height": 230 },
+      "order": 0
+    },
+    {
+      "joint_from": { "name": "Chest", "x": 400, "y": 799 },
+      "joint_to": { "name": "RHip", "x": 327, "y": 763 }
+    },
+    {
+      "joint_from": { "name": "RHip", "x": 310, "y": 852 },
+      "joint_to": { "name": "RKnee", "x": 310, "y": 977 },
+      "skin": { "x": 248, "y": 817, "width": 129, "height": 190 },
+      "order": 0
+    },
+    {
+      "joint_from": { "name": "RKnee", "x": 511, "y": 1083 },
+      "joint_to": { "name": "RAnkle", "x": 511, "y": 1228 },
+      "skin": { "x": 448, "y": 1053, "width": 163, "height": 212 },
+      "order": 0
+    },
+    {
+      "joint_from": { "name": "Chest", "x": 400, "y": 799 },
+      "joint_to": { "name": "LHip", "x": 466, "y": 775 }
+    },
+    {
+      "joint_from": { "name": "LHip", "x": 481, "y": 852 },
+      "joint_to": { "name": "LKnee", "x": 481, "y": 977 },
+      "skin": { "x": 413, "y": 817, "width": 129, "height": 184 },
+      "order": -1
+    },
+    {
+      "joint_from": { "name": "LKnee", "x": 511, "y": 1083 },
+      "joint_to": { "name": "LAnkle", "x": 511, "y": 1228 },
+      "skin": { "x": 448, "y": 1053, "width": 163, "height": 212 },
+      "order": -1
+    }
+  ]
+}
