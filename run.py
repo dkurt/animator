@@ -16,8 +16,8 @@ parser.add_argument('--model', required=True, help='Path to .caffemodel')
 parser.add_argument('--config', required=True, help='Path to .json file with character description')
 parser.add_argument('--input', help='Path to image or video. Skip to capture frames from camera')
 parser.add_argument('--output', help='Path to output directory to write frames. Display output on the screen if not specified.')
-parser.add_argument('--width', default=368, type=int, help='Resize network input to specific width.')
-parser.add_argument('--height', default=368, type=int, help='Resize network input to specific height.')
+parser.add_argument('--width', default=456, type=int, help='Resize network input to specific width.')
+parser.add_argument('--height', default=256, type=int, help='Resize network input to specific height.')
 parser.add_argument('--thr', default=0.1, type=float, help='Threshold value for pose parts heat map')
 args = parser.parse_args()
 
@@ -168,26 +168,33 @@ while cv.waitKey(1) < 0:
 
     frameWidth = frame.shape[1]
     frameHeight = frame.shape[0]
-    inp = cv.dnn.blobFromImage(frame, 1.0 / 255, (inWidth, inHeight),
-                              (0, 0, 0), swapRB=False, crop=False)
+    inp = cv.dnn.blobFromImage(frame, scalefactor=1.0, size=(inWidth, inHeight))
     net.setInput(inp)
     out = net.forward()
 
     # Extract predicted joints
     points = []
     for i in range(len(JOINTS)):
-        # Slice heatmap of corresponging body's part.
-        heatMap = out[0, i, :, :]
+        if JOINTS[i] == 'Chest':
+            rh = points[JOINTS.index('RHip')]
+            lh = points[JOINTS.index('LHip')]
+            if rh and lh:
+                points.append(((rh[0] + lh[0]) / 2, (rh[1] + lh[1]) / 2))
+            else:
+                points.append(None)
+        else:
+            # Slice heatmap of corresponging body's part.
+            heatMap = out[0, i, :, :]
 
-        # Originally, we try to find all the local maximums. To simplify a sample
-        # we just find a global one. However only a single pose at the same time
-        # could be detected this way.
-        _, conf, _, point = cv.minMaxLoc(heatMap)
-        x = (frameWidth * point[0]) / out.shape[3]
-        y = (frameHeight * point[1]) / out.shape[2]
+            # Originally, we try to find all the local maximums. To simplify a sample
+            # we just find a global one. However only a single pose at the same time
+            # could be detected this way.
+            _, conf, _, point = cv.minMaxLoc(heatMap)
+            x = (frameWidth * point[0]) / out.shape[3]
+            y = (frameHeight * point[1]) / out.shape[2]
 
-        # Add a point if it's confidence is higher than threshold.
-        points.append((x, y) if conf > args.thr else None)
+            # Add a point if it's confidence is higher than threshold.
+            points.append((x, y) if conf > args.thr else None)
 
     # Draw detected bones on the frame.
     for bone in character.bones:
@@ -218,7 +225,8 @@ while cv.waitKey(1) < 0:
     bonesImg = np.zeros((1000, 1000, 3), dtype=np.uint8)
     character.draw(bonesImg)
 
-    cv.imshow('OpenPose using OpenCV', frame)
+    frame = cv.resize(frame, (640, 480))
+    cv.imshow('Animator', frame)
     cv.imshow('bones', bonesImg)
     if args.output:
         cv.imwrite(os.path.join(args.output, '%06d.png' % frameId), bonesImg)
