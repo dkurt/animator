@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import time
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -9,6 +10,7 @@ from threading import Thread, Lock
 
 from camera import Camera
 
+THRESHOLD = 0.1
 cameras = [Camera(0), Camera(1)]
 #
 # Estimate cameras world positions
@@ -17,8 +19,18 @@ cameras = [Camera(0), Camera(1)]
 while cv.waitKey(1) < 0:
     frames = [camera.captureFrame() for camera in cameras]
     for i in range(len(cameras)):
-        cameras[i].estimateCameraPos(frames[i])
         cv.imshow('camera %d' % i, frames[i])
+
+
+calibrationStart = time.time()
+while cv.waitKey(1) < 0 and (time.time() - calibrationStart < 3):
+    frames = [camera.captureFrame() for camera in cameras]
+    chessboardFound = [False, False]
+    for i in range(len(cameras)):
+        chessboardFound[i] = cameras[i].estimateCameraPos(frames[i])
+        cv.imshow('camera %d' % i, frames[i])
+    if not np.all(chessboardFound):
+        calibrationStart = time.time()
 
 # def projMat(cm, rvec, tvec):
 #     rm, _ = cv.Rodrigues(rvec)
@@ -44,13 +56,29 @@ while cv.waitKey(1) < 0:
 #
 
 BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3,
-               "LShoulder": 5, "LElbow": 6,
-               "REye": 14,
-               "LEye": 15, "REar": 16, "LEar": 17}
+               "LShoulder": 5, "LElbow": 6,}
+POSE_PAIRS = [ ["Neck", "Nose"], ["Neck", "RShoulder"], ["Neck", "LShoulder"],
+               ["RShoulder", "RElbow"], ["LShoulder", "LElbow"] ]
+# BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
+#                "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
+#                "RAnkle": 10, "LHip": 11, "LKnee": 12, "LAnkle": 13, "REye": 14,
+#                "LEye": 15, "REar": 16, "LEar": 17, "Background": 18 }
+#
+# POSE_PAIRS = [ ["Neck", "RShoulder"], ["Neck", "LShoulder"], ["RShoulder", "RElbow"],
+#                ["RElbow", "RWrist"], ["LShoulder", "LElbow"], ["LElbow", "LWrist"],
+#                ["Neck", "RHip"], ["RHip", "RKnee"], ["RKnee", "RAnkle"], ["Neck", "LHip"],
+#                ["LHip", "LKnee"], ["LKnee", "LAnkle"], ["Neck", "Nose"], ["Nose", "REye"],
+#                ["REye", "REar"], ["Nose", "LEye"], ["LEye", "LEar"] ]
 
 
-POSE_PAIRS = [ ["Neck", "Nose"], ["Nose", "REye"], ["Neck", "RShoulder"], ["Neck", "LShoulder"],
-               ["REye", "REar"], ["Nose", "LEye"], ["LEye", "LEar"], ["RShoulder", "RElbow"], ["LShoulder", "LElbow"] ]
+# BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3,
+#                "LShoulder": 5, "LElbow": 6,
+#                "REye": 14,
+#                "LEye": 15, "REar": 16, "LEar": 17}
+#
+#
+# POSE_PAIRS = [ ["Neck", "Nose"], ["Nose", "REye"], ["Neck", "RShoulder"], ["Neck", "LShoulder"],
+#                ["REye", "REar"], ["Nose", "LEye"], ["LEye", "LEar"], ["RShoulder", "RElbow"], ["LShoulder", "LElbow"] ]
 
 
 net = cv.dnn.readNet('human-pose-estimation-0001.bin', 'human-pose-estimation-0001.xml')
@@ -65,7 +93,8 @@ def detectionThread():
         for camera in cameras:
             frames.append(camera.captureFrame())
 
-        blob = cv.dnn.blobFromImages(frames, 1.0, (456, 256))
+        # blob = cv.dnn.blobFromImages(frames, 1.0, (456, 256))
+        blob = cv.dnn.blobFromImages(frames)
         net.setInput(blob)
         out = net.forward()
 
@@ -73,21 +102,28 @@ def detectionThread():
         poses = []
         for part in BODY_PARTS.values():
             pts = []
-            # color = (0, 255, 0) if part == NOSE else (0, 0, 255)
-            color = (0, 255, 0)
             for i in range(2):
-                _, conf, _, point = cv.minMaxLoc(out[i, part, :, :])
-                x = (frames[i].shape[1] * point[0]) / out.shape[3]
-                y = (frames[i].shape[0] * point[1]) / out.shape[2]
-                pts.append(np.array([[x], [y]], dtype=np.float32))
-                cv.circle(frames[i], (x, y), 5, color, cv.FILLED)
+                featureMap = cv.resize(out[i, part, :, :], dsize=(frames[i].shape[1], frames[i].shape[0]))
+                _, conf, _, point = cv.minMaxLoc(featureMap)
+                if conf > THRESHOLD:
+                    # x = (frames[i].shape[1] * point[0]) / out.shape[3]
+                    # y = (frames[i].shape[0] * point[1]) / out.shape[2]
+                    x = point[0]
+                    y = point[1]
+                    pts.append((x, y))
+                    cv.circle(frames[i], (x, y), 5, (0, 255, 0), cv.FILLED)
+                else:
+                    pts.append(None)
                 cv.imshow("camera %d" % i, frames[i])
 
-            p = cv.triangulatePoints(cameras[0].projMat, cameras[1].projMat, pts[0], pts[1])
-            p[0] /= p[3]
-            p[1] /= p[3]
-            p[2] /= p[3]
-            poses.append((p[0], p[1], p[2]))
+            if pts[0] and pts[1]:
+                p = cv.triangulatePoints(cameras[0].projMat, cameras[1].projMat, pts[0], pts[1])
+                p[0] /= p[3]
+                p[1] /= p[3]
+                p[2] /= p[3]
+                poses.append((p[0], p[1], p[2]))
+            else:
+                poses.append(None)
         mutex.release()
 
 
@@ -120,27 +156,10 @@ def render():
     glVertex3f(0, 0, 0)
     glVertex3f(0, 0, 100)
 
-    # rvec, tvec
-    # [[-0.01792515]
-    #  [ 2.6178017 ]
-    #  [-2.1431963 ]]
-    #
-    # [[ 4.731706 ]
-    #  [-1.5379528]
-    #  [20.450714 ]]
-    #
-
     glEnd()
 
-    glColor3ub(255, 0, 255)
     glMatrixMode(GL_MODELVIEW)
     mutex.acquire()
-    for pos in poses:
-        glPushMatrix()
-        glTranslatef(pos[0], pos[1], pos[2])
-        glutSolidSphere(0.5, 10, 10)
-        glPopMatrix()
-
     if len(poses) == len(BODY_PARTS):
         for edge in POSE_PAIRS:
             idFrom = BODY_PARTS.keys().index(edge[0])
@@ -149,12 +168,19 @@ def render():
             pointFrom = poses[idFrom]
             pointTo = poses[idTo]
 
-            glBegin(GL_LINES)
-            glColor3ub(255, 255, 0)
-            glVertex3f(pointFrom[0], pointFrom[1], pointFrom[2])
-            glVertex3f(pointTo[0], pointTo[1], pointTo[2])
-            glEnd()
+            if pointFrom and pointTo:
+                glBegin(GL_LINES)
+                glColor3ub(255, 255, 0)
+                glVertex3f(pointFrom[0], pointFrom[1], pointFrom[2])
+                glVertex3f(pointTo[0], pointTo[1], pointTo[2])
+                glEnd()
 
+                glColor3ub(255, 0, 255)
+                for pos in [pointFrom, pointTo]:
+                    glPushMatrix()
+                    glTranslatef(pos[0], pos[1], pos[2])
+                    glutSolidSphere(0.5, 10, 10)
+                    glPopMatrix()
 
     mutex.release()
 

@@ -4,17 +4,25 @@ import numpy as np
 PATTERN_SIZE = (9, 6)
 
 PATTERN_WORLD_COORDS = []
-for y in reversed(range(0, PATTERN_SIZE[1])):
-    for x in range(0, PATTERN_SIZE[0]):
-        PATTERN_WORLD_COORDS.append([x, y, 0])
+# for y in reversed(range(0, PATTERN_SIZE[1])):
+#     for x in range(0, PATTERN_SIZE[0]):
+#         PATTERN_WORLD_COORDS.append([x, y, 0])
+for z in reversed(range(0, PATTERN_SIZE[1])):
+    for y in range(0, PATTERN_SIZE[0]):
+        PATTERN_WORLD_COORDS.append([0, y, z])
+
 PATTERN_WORLD_COORDS = np.array(PATTERN_WORLD_COORDS, dtype=np.float32)
 
 
 class Camera:
     def __init__(self, cameraId):
         self.cap = cv.VideoCapture(cameraId)
-        self.cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+        print '~~~~'
+        print self.cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
+        print self.cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
+        print self.cap.get(cv.CAP_PROP_FPS)
+        print self.cap.set(cv.CAP_PROP_FPS, 60)
+        print self.cap.get(cv.CAP_PROP_FPS)
         self.cameraId = cameraId
         self.projMat = np.zeros((3, 4), dtype=np.float32)
 
@@ -59,6 +67,7 @@ class Camera:
 
             rm, _ = cv.Rodrigues(rvec)
             self.projMat = np.dot(self.cameraMatrix, np.hstack((rm, tvec)))
+        return found
 
     # def captureFrame(self):
     #     hasFrame, frame = self.cap.read()
